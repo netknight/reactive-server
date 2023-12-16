@@ -1,0 +1,15 @@
+GET {{apiUrl}}/accounts
+Accept: application/json
+
+###
+
+POST {{apiUrl}}/accounts
+Accept: application/json
+Content-Type: application/json
+
+{
+  "username": "username",
+  "email": "username@test.com",
+  "password": "idKfA01"
+}
+
