@@ -45,6 +45,6 @@ testFrameworks += new TestFramework("weaver.framework.CatsEffect")
 
 lazy val root = (project in file("."))
   .settings(
-    name := "experiments",
+    name := "server",
     idePackagePrefix := Some("io.dm")
   )
