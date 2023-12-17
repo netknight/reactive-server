@@ -1,13 +1,15 @@
 package io.dm
-package model
+package domain
 
-import cats.effect.Async
+import cats.effect.Concurrent
 import io.circe.generic.auto.{deriveDecoder, deriveEncoder}
 import io.github.iltotore.iron.:|
+import io.github.iltotore.iron.autoRefine
 import io.github.iltotore.iron.circe.given
 import io.github.iltotore.iron.constraint.all.{Alphanumeric, DescribedAs, Match, MaxLength, MinLength}
 import org.http4s.circe.{accumulatingJsonOf, jsonEncoderOf}
 import org.http4s.{EntityDecoder, EntityEncoder}
+
 
 type Username = (Alphanumeric & MinLength[3] & MaxLength[10]) DescribedAs
   "Username should be alphanumeric and have a length between 3 and 10"
@@ -23,8 +25,11 @@ case class Account(username: String :| Username, email: String :| Email, passwor
 
 object Account {
   given [F[_]]: EntityEncoder[F, Account] = jsonEncoderOf[F, Account]
-  given [F[_]: Async]: EntityDecoder[F, Account] = accumulatingJsonOf[F, Account]
+  given [F[_]: Concurrent]: EntityDecoder[F, Account] = accumulatingJsonOf[F, Account]
   //given EntityEncoder[IO, Account] = jsonEncoderOf[IO, Account]
   //given EntityDecoder[IO, Account] = accumulatingJsonOf[IO, Account]
+
+  @Deprecated
+  val testInstance: Account = Account("test", "test@test.com", "iddQd43")
 }
 

@@ -15,8 +15,6 @@ scalacOptions ++= Seq(
 
 //resolvers += Resolver.mavenLocal
 
-//addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
-
 // Runtime
 libraryDependencies += "org.typelevel" %% "cats-effect" % "3.5.2" withSources() withJavadoc()
 libraryDependencies +=  "org.typelevel" %% "log4cats-slf4j"   % "2.6.0"
@@ -31,9 +29,13 @@ libraryDependencies += "io.circe" %% "circe-generic" % "0.14.5"
 //libraryDependencies += "io.circe" %% "circe-parser" % "0.14.5"
 
 libraryDependencies += "io.github.iltotore" %% "iron" % "2.0.0"
-//libraryDependencies += "io.github.iltotore" %% "iron-string" % "1.2-1.0.0"
 libraryDependencies += "io.github.iltotore" %% "iron-cats" % "2.0.0"
 libraryDependencies += "io.github.iltotore" %% "iron-circe" % "2.0.0"
+
+//libraryDependencies += "io.chrisdavenport" %% "http4s-log4cats-contextlog" % "0.3.0"
+
+// Runtime
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.7" % Runtime
 
 // Test
 libraryDependencies += "com.disneystreaming" %% "weaver-cats" % "0.8.1" % Test
