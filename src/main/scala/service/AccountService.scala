@@ -4,12 +4,12 @@ package service
 import domain.Account
 
 import cats.data.Kleisli
-import cats.effect.Async
+import cats.effect.Sync
 import cats.effect.std.Random
 import cats.implicits.catsSyntaxFlatMapOps
 import org.typelevel.log4cats.LoggerFactory
 
-class AccountService[F[_]](using F: Async[F], L: LoggerFactory[F]) {
+class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]) {
 
   private val log = LoggerFactory.getLogger
 

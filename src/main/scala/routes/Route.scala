@@ -1,5 +1,5 @@
 package io.dm
-package http.routes
+package routes
 
 import cats.Monad
 import cats.data.NonEmptyList
@@ -15,4 +15,10 @@ trait Route[F[_]: Monad] extends Http4sDsl[F] {
 
   protected def badApiRequest(messages: NonEmptyList[String]): F[Response[F]] =
     BadRequest(Map("messages" -> messages))
+}
+
+trait RoutePathObject {
+  def base: String
+  def buildPath(path: String, paths: String*): String = s"$base/$path${paths.mkString("/", "/", "")}"
+
 }
