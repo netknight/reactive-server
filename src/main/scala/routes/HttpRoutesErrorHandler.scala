@@ -4,9 +4,10 @@ package routes
 import cats.ApplicativeError
 import cats.data.{Kleisli, OptionT}
 import org.http4s.{HttpRoutes, Request, Response}
+import org.typelevel.log4cats.Logger
 
 trait HttpRoutesErrorHandler[F[_], E <: Throwable] {
-  def handle(alsoOnError: E => F[Unit])(routes: HttpRoutes[F]): HttpRoutes[F]
+  def handle(routes: HttpRoutes[F])(using logger: Logger[F]): HttpRoutes[F]
 }
 
 object HttpRoutesErrorHandler {
@@ -14,7 +15,7 @@ object HttpRoutesErrorHandler {
 
   import cats.implicits._
 
-  def apply[F[_], E <: Throwable](routes: HttpRoutes[F])(handler: E => F[Response[F]])(implicit ev: ApplicativeError[F, E]): HttpRoutes[F] =
+  def apply[F[_], E <: Throwable](routes: HttpRoutes[F])(handler: E => F[Response[F]])(using ev: ApplicativeError[F, E]): HttpRoutes[F] =
     Kleisli { (req: Request[F]) =>
       OptionT {
         routes.run(req).value.handleErrorWith { e => handler(e).map(Option(_)) }
