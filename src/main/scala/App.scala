@@ -1,6 +1,6 @@
 package io.dm
 
-import routes.{AccountRoutes, LifecycleRoute, Route}
+import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, HttpRoutesErrorHandler, LifecycleRoute, Route}
 import service.AccountService
 
 import cats.effect.{Async, IO, IOApp}
@@ -15,6 +15,7 @@ class App[F[_]](using F: Async[F]):
   import cats.implicits.catsSyntaxApply
   given LoggerFactory[F] = Slf4jFactory.create[F]
   given AccountService[F] = AccountService()
+  given HttpRoutesErrorHandler[F, Throwable] = DefaultHttpRoutesErrorHandler[F]
 
   private val log = LoggerFactory.getLogger
   

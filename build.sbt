@@ -6,7 +6,6 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-unchecked",
-  //"-language:postfixOps",
   "-explain",
   "-explain-types",
   "-new-syntax",
