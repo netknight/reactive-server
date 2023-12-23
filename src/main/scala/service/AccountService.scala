@@ -7,11 +7,11 @@ import cats.data.Kleisli
 import cats.effect.Sync
 import cats.effect.std.Random
 import org.typelevel.log4cats.{Logger, LoggerFactory}
-
-import org.typelevel.log4cats.syntax._
+import org.typelevel.log4cats.syntax.*
 import cats.implicits.catsSyntaxFlatMapOps
+import doobie.util.transactor.Transactor
 
-class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]) {
+class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F], T: Transactor[F]):
 
   given Logger[F] = LoggerFactory.getLogger
 
@@ -36,4 +36,4 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]) {
     getAccount.andThen(a => validatePasswordK(a, password)).run(id)
   */
 
-}
+end AccountService

@@ -3,50 +3,58 @@ package io.dm
 import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, HttpRoutesErrorHandler, LifecycleRoute, Route}
 import service.AccountService
 
-import cats.effect.{Async, IO, IOApp}
-import org.http4s.HttpApp
+import cats.effect.{Async, IO, IOApp, Resource}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import org.typelevel.log4cats.slf4j.Slf4jFactory
-
-import cats.implicits.{catsSyntaxApply, catsSyntaxFlatMapOps}
-import org.typelevel.log4cats.syntax._
+import cats.implicits.{toFlatMapOps, toFunctorOps}
+import doobie.util.ExecutionContexts
+import doobie.util.transactor.Transactor
+import org.typelevel.log4cats.syntax.*
 
 class App[F[_]](using F: Async[F]):
   given LoggerFactory[F] = Slf4jFactory.create[F]
-  given AccountService[F] = AccountService()
   given HttpRoutesErrorHandler[F, Throwable] = DefaultHttpRoutesErrorHandler[F]
 
   given Logger[F] = LoggerFactory.getLogger
-  
 
-  private val routes: Seq[Route[F]] =
-    Seq(
+  private def databaseSetup(config: DBConfiguration): Resource[F, DatabaseManager[F]] = for {
+    ec <- ExecutionContexts.fixedThreadPool[F](32)
+    transactor <- DatabaseManager.transactor[F](config, ec)
+  } yield DatabaseManager(transactor)
+
+  private def routes(config: AppConfiguration)(transactor: Transactor[F]): F[Seq[Route[F]]] =
+    given Transactor[F] = transactor
+    given AccountService[F] = AccountService()
+    F.delay(Seq(
       LifecycleRoute(),
       AccountRoutes()
-    )
+    ))
 
-  private val app: HttpApp[F] =
-    Router(routes.map(r => r.prefixPath -> r.routes): _*).orNotFound
-
-  def start(config: AppConfiguration): F[Unit] =
-    info"Starting server with routes: ${routes.map(_.prefixPath).mkString(", ")}" <*
+  private def startApp(config: AppConfiguration)(routes: Seq[Route[F]]): F[Nothing] =
     BlazeServerBuilder[F]
       .bindHttp(config.http.port, config.http.host)
-      .withHttpApp(app)
+      .withHttpApp(Router(routes.map(r => r.prefixPath -> r.routes): _*).orNotFound)
       .resource
       .useForever
+
+  def start(): F[Unit] =
+    for {
+      _ <- info"Starting app"
+      config <- AppConfiguration.load
+      _ <- debug"Loaded config: $config"
+      _ <- debug"Launching migration scripts..."
+      _ <- databaseSetup(config.db).use(_.migrate())
+      _ <- debug"Migration complete!"
+      routes <- databaseSetup(config.db).use(t => routes(config)(t.transactor))
+      _ <- debug"Loaded routes: ${routes.map(_.prefixPath).mkString(", ")}"
+      _ <- startApp(config)(routes)
+      _ <- info"App terminated"
+    } yield ()
 
 end App
 
 object App extends IOApp.Simple:
-  //import pureconfig.ConfigSource
-  //import pureconfig._
-  //import pureconfig.generic.derivation.default._
-
-  //private val config: IO[AppConfiguration] = ConfigSource.default.loadOrThrow[AppConfiguration]
-  private val config: IO[AppConfiguration] = IO.pure(AppConfiguration(http = HttpConfiguration("localhost", 8080)))
-  
-  override val run: IO[Unit] = config >>= App[IO].start
+  override val run: IO[Unit] = App[IO].start()
 

@@ -1,15 +1,23 @@
 package io.dm
 
+import cats.effect.Sync
+import cats.implicits.*
 import pureconfig.ConfigReader
-import pureconfig.generic._
-//import pureconfig.generic.derivation.default._
+import pureconfig.*
+import pureconfig.error.ConfigReaderException
+import pureconfig.generic.derivation.default.*
 
-final case class AppConfiguration(http: HttpConfiguration) //derives ConfigReader
-final case class HttpConfiguration(host: String, port: Int) //derives ConfigReader
+final case class DBConfiguration(
+  driver: String,
+  url: String,
+  user: String,
+  password: String
+) derives ConfigReader
 
-object AppConfiguration {
+final case class HttpConfiguration(host: String, port: Int)derives ConfigReader
+final case class AppConfiguration(http: HttpConfiguration, db: DBConfiguration) derives ConfigReader
 
-  //given httpConfigurationReader: ConfigReader[HttpConfiguration] = deriveReader[HttpConfiguration]
 
-
-}
+object AppConfiguration:
+  def load[F[_]](using F: Sync[F]): F[AppConfiguration] =
+    F.delay(ConfigSource.default.load[AppConfiguration].leftMap[Throwable](ConfigReaderException[AppConfiguration])).rethrow

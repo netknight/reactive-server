@@ -35,8 +35,14 @@ libraryDependencies += "io.github.iltotore" %% "iron-circe" % "2.0.0"
 
 //libraryDependencies += "io.chrisdavenport" %% "http4s-log4cats-contextlog" % "0.3.0"
 
+libraryDependencies += "com.h2database" % "h2" % "2.1.214"
+libraryDependencies += "org.flywaydb" % "flyway-core" % "9.16.0"
+libraryDependencies += "org.tpolecat" %% "doobie-core" % "1.0.0-M5"
+libraryDependencies += "org.tpolecat" %% "doobie-h2" % "1.0.0-M5"
+libraryDependencies += "org.tpolecat" %% "doobie-hikari" % "1.0.0-M5"
+
 // Runtime
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.7" % Runtime
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.4.12" % Runtime
 
 // Test
 libraryDependencies += "com.disneystreaming" %% "weaver-cats" % "0.8.1" % Test
