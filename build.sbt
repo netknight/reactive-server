@@ -29,13 +29,13 @@ libraryDependencies += "io.circe" %% "circe-core" % "0.14.5"
 libraryDependencies += "io.circe" %% "circe-generic" % "0.14.5"
 //libraryDependencies += "io.circe" %% "circe-parser" % "0.14.5"
 
-libraryDependencies += "io.github.iltotore" %% "iron" % "2.0.0"
-libraryDependencies += "io.github.iltotore" %% "iron-cats" % "2.0.0"
-libraryDependencies += "io.github.iltotore" %% "iron-circe" % "2.0.0"
+libraryDependencies += "io.github.iltotore" %% "iron" % "2.3.0"
+libraryDependencies += "io.github.iltotore" %% "iron-cats" % "2.3.0"
+libraryDependencies += "io.github.iltotore" %% "iron-circe" % "2.3.0"
 
 //libraryDependencies += "io.chrisdavenport" %% "http4s-log4cats-contextlog" % "0.3.0"
 
-libraryDependencies += "com.h2database" % "h2" % "2.1.214"
+libraryDependencies += "com.h2database" % "h2" % "2.2.224"
 libraryDependencies += "org.flywaydb" % "flyway-core" % "9.16.0"
 libraryDependencies += "org.tpolecat" %% "doobie-core" % "1.0.0-M5"
 libraryDependencies += "org.tpolecat" %% "doobie-h2" % "1.0.0-M5"

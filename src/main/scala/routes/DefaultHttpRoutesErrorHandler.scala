@@ -2,13 +2,12 @@ package io.dm
 package routes
 
 import cats.MonadError
+import cats.syntax.flatMap._
 import org.http4s.{HttpRoutes, InvalidMessageBodyFailure, Response}
 import org.http4s.dsl.Http4sDsl
 import org.typelevel.log4cats.Logger
 
 class DefaultHttpRoutesErrorHandler[F[_]](using M: MonadError[F, Throwable]) extends HttpRoutesErrorHandler[F, Throwable] with Http4sDsl[F] {
-
-  import cats.implicits.catsSyntaxFlatMapOps
   
   val handler: Throwable => F[Response[F]] = {
     case e: InvalidMessageBodyFailure =>

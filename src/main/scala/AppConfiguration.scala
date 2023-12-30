@@ -1,7 +1,9 @@
 package io.dm
 
 import cats.effect.Sync
-import cats.implicits.*
+import cats.syntax.either.*
+import cats.syntax.monadError.*
+
 import pureconfig.ConfigReader
 import pureconfig.*
 import pureconfig.error.ConfigReaderException

@@ -6,7 +6,8 @@ import cats.data.{Kleisli, OptionT}
 import org.http4s.{HttpRoutes, Request, Response}
 import org.typelevel.log4cats.Logger
 
-import cats.implicits._
+import cats.syntax.applicativeError._
+import cats.syntax.functor._
 
 trait HttpRoutesErrorHandler[F[_], E <: Throwable]:
   def handle(routes: HttpRoutes[F])(using logger: Logger[F]): HttpRoutes[F]

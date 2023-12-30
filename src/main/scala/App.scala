@@ -1,17 +1,19 @@
 package io.dm
 
-import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, HttpRoutesErrorHandler, LifecycleRoute, Route}
+import repositories.AccountRepository
+import routes.*
 import service.AccountService
 
 import cats.effect.{Async, IO, IOApp, Resource}
-import org.http4s.blaze.server.BlazeServerBuilder
-import org.http4s.server.Router
-import org.typelevel.log4cats.{Logger, LoggerFactory}
-import org.typelevel.log4cats.slf4j.Slf4jFactory
-import cats.implicits.{toFlatMapOps, toFunctorOps}
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
 import doobie.util.ExecutionContexts
 import doobie.util.transactor.Transactor
+import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.server.Router
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{Logger, LoggerFactory}
 
 class App[F[_]](using F: Async[F]):
   given LoggerFactory[F] = Slf4jFactory.create[F]
@@ -26,6 +28,7 @@ class App[F[_]](using F: Async[F]):
 
   private def routes(config: AppConfiguration)(transactor: Transactor[F]): F[Seq[Route[F]]] =
     given Transactor[F] = transactor
+    given AccountRepository[F] = AccountRepository()
     given AccountService[F] = AccountService()
     F.delay(Seq(
       LifecycleRoute(),

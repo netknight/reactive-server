@@ -5,10 +5,10 @@ import routes.LifecycleRoute.RoutePath
 
 import cats.effect.Sync
 import org.http4s.HttpRoutes
-import org.typelevel.log4cats.{Logger, LoggerFactory}
-
-import cats.implicits.catsSyntaxFlatMapOps
 import org.typelevel.log4cats.syntax._
+import org.typelevel.log4cats.{Logger, LoggerFactory}
+import cats.syntax.flatMap._
+
 
 class LifecycleRoute[F[_]](using F: Sync[F], L: LoggerFactory[F]) extends Route[F]:
   given Logger[F] = LoggerFactory.getLogger
