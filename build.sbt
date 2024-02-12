@@ -25,6 +25,8 @@ libraryDependencies += "org.http4s" %% "http4s-dsl" % "1.0.0-M29"
 libraryDependencies += "org.http4s" %% "http4s-blaze-server" % "1.0.0-M29"
 libraryDependencies += "org.http4s" %% "http4s-circe" % "1.0.0-M29"
 
+libraryDependencies += "org.endpoints4s" %% "algebra" % "1.11.1"
+
 libraryDependencies += "io.circe" %% "circe-core" % "0.14.5"
 libraryDependencies += "io.circe" %% "circe-generic" % "0.14.5"
 //libraryDependencies += "io.circe" %% "circe-parser" % "0.14.5"

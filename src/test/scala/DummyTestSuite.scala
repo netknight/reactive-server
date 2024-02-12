@@ -4,10 +4,10 @@ import cats.effect.IO
 import weaver.Expectations.Helpers.expect
 import weaver.SimpleIOSuite
 
-class DummyTestSuite extends SimpleIOSuite {
+object DummyTestSuite extends SimpleIOSuite {
 
   pureTest("non-effectful (pure) test") {
-    expect("hello".length == 6)
+    expect("hello".length == 5)
   }
 
   test("dummy test2") {

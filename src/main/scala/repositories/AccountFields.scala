@@ -17,11 +17,11 @@ case class AccountEntity(
 ) extends Entity[Long, AccountFields]
 */
 
-case class AccountEntity(
+case class AccountEntity (
   id: Long,
   username: String,
   email: String,
-  password: String                      
+  password: String,                      
   //created: Instant,
   //updated: Instant
-)
+) extends Entity[Long]//, AccountFields

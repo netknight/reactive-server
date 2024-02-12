@@ -9,11 +9,10 @@ import cats.data.Kleisli
 import cats.effect.Sync
 import cats.syntax.applicative.*
 import cats.syntax.flatMap.*
-import doobie.util.transactor.Transactor
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 
-class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F], T: Transactor[F], R: AccountRepository[F]):
+class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]/*, T: Transactor[F]*/, R: AccountRepository.I[F]):
 
   given Logger[F] = LoggerFactory.getLogger
 
@@ -29,8 +28,8 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F], T: Transactor[
 
   def findById(id: Int): F[Option[Account]] =
     //info"getAccountById($id)" >> getRandomBool >>= buildAccount
-    //info"getAccountById($id)" >> R.get(id).mapToAccount()  // TODO: Uncomment this when deal with DB hanging issue
-    info"getAccountById($id)" >> Option(AccountEntity(1, "test3", "test@test.com", "iddQd43")).pure[F].mapToAccount()
+    info"getAccountById($id)" >> R.get(id).mapToAccount()  // TODO: Uncomment this when deal with DB hanging issue
+    //info"getAccountById($id)" >> Option(AccountEntity(1, "test3", "test@test.com", "iddQd43")).pure[F].mapToAccount()
 
 
   def findAll(): F[List[Account]] = ???

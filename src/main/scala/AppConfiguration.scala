@@ -13,10 +13,11 @@ final case class DBConfiguration(
   driver: String,
   url: String,
   user: String,
-  password: String
+  password: String,
+  threadPoolSize: Int
 ) derives ConfigReader
 
-final case class HttpConfiguration(host: String, port: Int)derives ConfigReader
+final case class HttpConfiguration(host: String, port: Int) derives ConfigReader
 final case class AppConfiguration(http: HttpConfiguration, db: DBConfiguration) derives ConfigReader
 
 

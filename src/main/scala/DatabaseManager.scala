@@ -31,4 +31,3 @@ object DatabaseManager:
       conf.password,
       ec
     )
-    
