@@ -1,11 +1,9 @@
 package io.dm
 
-import cats.effect.Sync
-import cats.syntax.either.*
-import cats.syntax.monadError.*
-
-import pureconfig.ConfigReader
-import pureconfig.*
+import cats.effect.{Resource, Sync}
+import com.typesafe.config.ConfigFactory
+import pureconfig.{ConfigReader, ConfigSource}
+import pureconfig.module.catseffect.syntax.*
 import pureconfig.error.ConfigReaderException
 import pureconfig.generic.derivation.default.*
 
@@ -22,5 +20,15 @@ final case class AppConfiguration(http: HttpConfiguration, db: DBConfiguration) 
 
 
 object AppConfiguration:
+  /*
+  //import cats.syntax.either.*
+  //import cats.syntax.monadError.*
   def load[F[_]](using F: Sync[F]): F[AppConfiguration] =
-    F.delay(ConfigSource.default.load[AppConfiguration].leftMap[Throwable](ConfigReaderException[AppConfiguration])).rethrow
+    F.delay(ConfigSource.default.load[AppConfiguration].leftMap[Throwable](ConfigReaderException[AppConfiguration])).rethrow    
+  */
+    
+  def load[F[_]](configFile: String = "application.conf")(using F: Sync[F]): F[AppConfiguration] =
+    ConfigSource.fromConfig(ConfigFactory.load(configFile)).loadF[F, AppConfiguration]()
+    
+  def loadResource[F[_]](configFile: String = "application.conf")(using F: Sync[F]): Resource[F, AppConfiguration] =
+    Resource.eval(load[F](configFile))

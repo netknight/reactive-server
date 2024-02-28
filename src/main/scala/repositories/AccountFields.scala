@@ -17,6 +17,9 @@ case class AccountEntity(
 ) extends Entity[Long, AccountFields]
 */
 
+// TODO: Use AnyVal for id
+//case class AccountId(id: Long) extends AnyVal
+
 case class AccountEntity (
   id: Long,
   username: String,

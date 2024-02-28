@@ -5,9 +5,6 @@ import cats.effect.{Async, Resource}
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
 
-import doobie.util.ExecutionContexts
-import doobie.util.transactor.Transactor
-
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
@@ -20,29 +17,28 @@ import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, HttpRoutesErrorHand
 import repositories.AccountRepository
 import service.AccountService
 
-// TODO Refactor this class to multiple structures: App, HttpServer & Db/Config initializer (too much logic for a class) example: https://github.com/jaspervz/todo-http4s-doobie/blob/master/src/main/scala/HttpServer.scala
+import doobie.hikari.HikariTransactor
+import doobie.util.ExecutionContexts
+import doobie.util.transactor.Transactor
 
 class HttpServer[F[_]](using F: Async[F]):
   given LoggerFactory[F] = Slf4jFactory.create[F]
   given HttpRoutesErrorHandler[F, Throwable] = DefaultHttpRoutesErrorHandler[F]
   given Logger[F] = LoggerFactory.getLogger
 
-  private type DbManager = DatabaseManager[F]
-  private type DbResource = Resource[F, DbManager]
+  private case class ServerResources(transactor: HikariTransactor[F], configuration: AppConfiguration)
 
-  private def databaseResource(config: DBConfiguration): DbResource =
+  private def createResources(configFile: String): Resource[F, ServerResources] =
     for {
-      ec <- ExecutionContexts.fixedThreadPool[F](config.threadPoolSize)
-      transactor <- DatabaseManager.transactor[F](config, ec)
-    } yield DatabaseManager(transactor)
+      config <- AppConfiguration.loadResource(configFile)
+      ec <- ExecutionContexts.fixedThreadPool[F](config.db.threadPoolSize)
+      transactor <- DatabaseManager.transactor[F](config.db, ec)
+    } yield ServerResources(transactor, config)
 
-  private def createRoutes(config: AppConfiguration)(transactor: Transactor[F]): F[Seq[Route[F]]] =
-    given Transactor[F] = transactor
-
+  private def createRoutes(resources: ServerResources): F[Seq[Route[F]]] =
+    given Transactor[F] = resources.transactor
     given AccountRepository[F] = AccountRepository()
-
     given AccountService[F] = AccountService()
-
     F.delay(Seq(
       LifecycleRoute(),
       AccountRoutes()
@@ -59,70 +55,32 @@ class HttpServer[F[_]](using F: Async[F]):
       logAction = Some((msg: String) => given_Logger_F.debug(s"[REQUEST LOG]: $msg"))
     )(httpRoutes).orNotFound
 
-  // TODO: Find a way how to chain middlewares
   private def createRequestIdMiddleware(httpRoutes: HttpRoutes[F]) =
     RequestId.httpRoutes[F](httpRoutes)
 
-  private def startApp(config: AppConfiguration)(routes: Seq[Route[F]]): F[Nothing] =
+  private def bindHttpServer(config: AppConfiguration)(routes: Seq[Route[F]]): F[Nothing] =
     BlazeServerBuilder[F]
       .bindHttp(config.http.port, config.http.host)
+      // TODO: Find a way how to chain middlewares correctly
       .withHttpApp(ResponseTiming(createRequestLogMiddleware(createRequestIdMiddleware(createRouter(routes)))))
       .resource
       .useForever
 
-  private def create(config: AppConfiguration, db: DbManager): F[Unit] =
+  private def create(resources: ServerResources): F[Unit] =
     for {
+      _ <- debug"Loaded config: ${resources.configuration}"
+      db = DatabaseManager(resources.transactor)
       _ <- debug"Launching migration scripts..."
       _ <- db.migrate()
       _ <- debug"Migration complete!"
-      // TODO: Remove this. It is just for test purposes.
-      /*
-      _ <- {
-        given Transactor[F] = db.transactor
-        AccountRepository().get(1)
-      }
-      */
-      routes <- createRoutes(config)(db.transactor)
+      routes <- createRoutes(resources)
       _ <- debug"Loaded routes: ${routes.map(_.prefixPath).mkString(", ")}"
-      _ <- startApp(config)(routes)
-      _ <- info"App started"
+      _ <- bindHttpServer(resources.configuration)(routes)
     } yield ()
 
-  /*
   def create(configFile: String = "application.conf"): F[Unit] =
     for {
-      config <- AppConfiguration.load
-      _ <- debug"Loaded config: $config"
-
-    }
-  */
-
-  def start(): F[Unit] =
-    for {
-      _ <- info"Starting app"
-      config <- AppConfiguration.load
-      _ <- debug"Loaded config: $config"
-      _ <- databaseResource(config.db).use { db => create(config, db) }
-      _ <- info"App terminated"
-      /*
-      _ <- debug"Launching migration scripts..."
-      db = databaseResource(config.db)
-      _ <- db.use(_.migrate())
-      _ <- debug"Migration complete!"
-      // TODO: Remove this. It is just for test purposes.
-      _ <- db.use { t =>
-        given Transactor[F] = t.transactor
-        AccountRepository().get(1)
-      }
-      routes <- db.use(t => createRoutes(config)(t.transactor))
-      _ <- debug"Loaded routes: ${routes.map(_.prefixPath).mkString(", ")}"
-      _ <- startApp(config)(routes)
-      _ <- info"App terminated"
-      */
-    } yield {
-      databaseResource(config.db).use { db =>
-        create(config, db)
-      }
-    }
-
-
+      _ <- info"Starting app..."
+      _ <- createResources(configFile).use(create)
+      _ <- info"App stopped"
+    } yield ()

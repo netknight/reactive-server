@@ -15,4 +15,4 @@ trait Entity[ID]  {
   val id: ID
   //val created: Instant
   //val updated: Instant
-} 
+}
