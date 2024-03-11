@@ -15,6 +15,10 @@ import org.typelevel.log4cats.{Logger, LoggerFactory}
 
 import org.typelevel.log4cats.syntax._
 
+import io.circe.generic.auto._
+
+// TODO: Refactor list requests to Streams(fs2), like in example here: https://github.com/jaspervz/todo-http4s-doobie/blob/master/src/main/scala/HttpServer.scala
+
 class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _], L: LoggerFactory[F], val accountService: AccountService[F]) extends Route[F] /*with algebra.Endpoints*/:
   given Logger[F] = LoggerFactory.getLogger
 
@@ -27,17 +31,29 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
     )
    */
 
-  // TODO: Log requests & responses
+  // TODO: Log requests & responses (remove custom logging after)
   val routes: HttpRoutes[F] = H.handle:
     HttpRoutes.of[F]:
       case GET -> Root =>
         info"GET ${RoutePath.base}" >> Ok(accountService.findAll())
 
-      case req @ POST -> Root =>
-        req.as[Account] >>= { r => Ok(accountService.createAccount(r)) }
+      case GET -> Root / LongVar(id) =>
+        info"GET ${RoutePath.base}/$id" >> accountService.findById(id) >>= okOrNotFound
 
-      case GET -> Root / IntVar(id) =>
-        info"GET ${RoutePath.base}/${id}" >> accountService.findById(id) >>= okOrNotFound
+      case req @ POST -> Root =>
+        req.as[Account] >>= { account =>
+          // TODO: Return ID here
+          info"PUT ${RoutePath.base}" >> accountService.createAccount(account) >>= { v => Created(/*v.json*/) }
+        }
+
+      case req @ PUT -> Root / LongVar(id) =>
+        req.as[Account] >>= { account =>
+          info"PUT ${RoutePath.base}/$id" >> accountService.updateAccount(id, account) >>= noContentOrNotFound
+        }
+
+      case req @ DELETE -> Root / LongVar(id) =>
+        info"DELETE ${RoutePath.base}/$id" >> accountService.deleteAccount(id) >>= noContentOrNotFound
+
   end routes
 
 end AccountRoutes
