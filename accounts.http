@@ -13,3 +13,7 @@ Content-Type: application/json
   "password": "idKfA01"
 }
 
+###
+
+GET {{apiUrl}}/accounts/2
+Accept: application/json

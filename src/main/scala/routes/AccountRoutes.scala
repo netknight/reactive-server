@@ -6,7 +6,7 @@ import routes.AccountRoutes.RoutePath
 import service.AccountService
 
 import cats.effect.Concurrent
-import cats.syntax.flatMap._
+import cats.syntax.flatMap.*
 
 //import endpoints4s.{algebra, generic}
 
@@ -31,10 +31,13 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
   val routes: HttpRoutes[F] = H.handle:
     HttpRoutes.of[F]:
       case GET -> Root =>
-        info"GET ${RoutePath.base}" >> accountService.findById(1) >>= okOrNotFound
+        info"GET ${RoutePath.base}" >> Ok(accountService.findAll())
 
       case req @ POST -> Root =>
-        req.as[Account] >>= { Ok(_) }
+        req.as[Account] >>= { r => Ok(accountService.createAccount(r)) }
+
+      case GET -> Root / IntVar(id) =>
+        info"GET ${RoutePath.base}/${id}" >> accountService.findById(id) >>= okOrNotFound
   end routes
 
 end AccountRoutes

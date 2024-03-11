@@ -2,6 +2,7 @@ package io.dm
 package repositories
 
 import cats.effect.Sync
+import cats.implicits.toFunctorOps
 import cats.syntax.flatMap.*
 import cats.syntax.applicative.*
 import doobie.implicits.toSqlInterpolator
@@ -30,7 +31,13 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
     
 
   override def delete(id: Long): F[Boolean] = ???
-  override def create(entity: AccountFields): F[AccountEntity] = ???
+  override def create(entity: AccountFields): F[AccountEntity] =
+    sql"insert into accounts(username, email, password) values (${entity.username},${entity.email},${entity.password})"
+      .update
+      .withUniqueGeneratedKeys[Int]("id")
+      .transact(tx) >>= { id =>
+        debug"Created entity: [$id] $entity" map { _ => AccountEntity(id, entity.username, entity.email, entity.password) }
+      }
   override def update(id: Long, entity: AccountFields): F[AccountEntity] = ???
   override def list(): Stream[F, AccountEntity] =
     sql"select * from accounts"

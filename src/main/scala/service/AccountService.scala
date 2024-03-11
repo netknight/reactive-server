@@ -9,6 +9,7 @@ import cats.data.Kleisli
 import cats.effect.Sync
 import cats.syntax.applicative.*
 import cats.syntax.flatMap.*
+import fs2.Stream
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 
@@ -32,12 +33,16 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]/*, T: Transacto
     //info"getAccountById($id)" >> Option(AccountEntity(1, "test3", "test@test.com", "iddQd43")).pure[F].mapToAccount()
 
 
-  def findAll(): F[List[Account]] = ???
-    //info"getAccounts()" >> R.list().mapToAccount() // TODO: Uncomment this
+  def findAll(): Stream[F, Account] =
+    Stream.eval(info"getAccounts()") >> R.list().mapToAccount()
   
   val getAccount: Kleisli[F, Int, Option[Account]] = Kleisli(findById)
 
-  def updateAccount(account: Account): F[Account] = ??? // TODO
+  def createAccount(account: Account): F[Account] =
+    R.create(account.toAccountFields) >>= Account.fromEntityF
+
+  def updateAccount(id: Int, account: Account): F[Account] =
+    R.update(id, account.toAccountFields) >>= Account.fromEntityF
 
   def validatePassword(account: Account, password: String): F[Boolean] = ??? // TODO
 
