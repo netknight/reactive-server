@@ -15,7 +15,7 @@ import org.typelevel.log4cats.{Logger, LoggerFactory}
 
 import org.typelevel.log4cats.syntax._
 
-import io.circe.generic.auto._
+import io.circe.generic.auto.*
 
 // TODO: Refactor list requests to Streams(fs2), like in example here: https://github.com/jaspervz/todo-http4s-doobie/blob/master/src/main/scala/HttpServer.scala
 
@@ -43,7 +43,7 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
       case req @ POST -> Root =>
         req.as[Account] >>= { account =>
           // TODO: Return ID here
-          info"PUT ${RoutePath.base}" >> accountService.createAccount(account) >>= { v => Created(/*v.json*/) }
+          info"PUT ${RoutePath.base}" >> accountService.createAccount(account) >>= { v => Created(v) }
         }
 
       case req @ PUT -> Root / LongVar(id) =>
