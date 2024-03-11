@@ -3,12 +3,10 @@ package service
 
 import domain.Account
 import domain.Account.mapToAccount
-import repositories.{AccountFields, AccountRepository, IdObject, OpResult, OpResultAffectedRows}
+import repositories.{AccountRepository, IdObject, OpResult, OpResultAffectedRows}
 
 import cats.data.Kleisli
 import cats.effect.Sync
-import cats.syntax.functor.*
-import cats.syntax.applicative.*
 import cats.syntax.flatMap.*
 import fs2.Stream
 import org.typelevel.log4cats.syntax.*
@@ -23,10 +21,10 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]/*, T: Transacto
     info"getAccountById($id)" >> R.get(id).mapToAccount()
 
 
-  def findAll(): F[List[Account]] =
+  def findAll(): Stream[F, Account] =
     Stream.eval(info"getAccounts()") >> R.list().mapToAccount()
 
-  val getAccount: Kleisli[F, Int, Option[Account]] = Kleisli(findById)
+  val getAccount: Kleisli[F, Long, OpResult[Account]] = Kleisli(findById)
 
   def createAccount(account: Account): F[IdObject[Long]] =
     R.create(account.toAccountFields)
