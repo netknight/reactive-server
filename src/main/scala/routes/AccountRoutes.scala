@@ -46,7 +46,8 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
         for {
           _ <- info"POST ${path.base}"
           account <- req.as[Account]
-          response <- Created(accountService.createAccount(account))
+          result <- accountService.createAccount(account)
+          response <- Created(result)
         } yield response
 
       case req @ PUT -> Root / LongVar(id) =>
