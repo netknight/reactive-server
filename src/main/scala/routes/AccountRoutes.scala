@@ -7,15 +7,14 @@ import service.AccountService
 
 import cats.effect.Concurrent
 import cats.syntax.flatMap.*
+import cats.syntax.functor.*
 
 //import endpoints4s.{algebra, generic}
 
 import org.http4s.{HttpRoutes, Response}
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 
-import org.typelevel.log4cats.syntax._
-
-import io.circe.generic.auto.*
+import org.typelevel.log4cats.syntax.*
 
 class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _], L: LoggerFactory[F], val accountService: AccountService[F]) extends Route[F] /*with algebra.Endpoints*/:
   given Logger[F] = LoggerFactory.getLogger
@@ -37,21 +36,31 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
         info"GET ${path.base}" >> Ok(accountService.findAll())
 
       case GET -> Root / LongVar(id) =>
-        info"GET ${path.base}/$id" >> accountService.findById(id) >>= okOrNotFound
+        for {
+          _ <- info"GET ${path.base}/$id"
+          account <- accountService.findById(id)
+          response <- okOrNotFound(account)
+        } yield response
 
       case req @ POST -> Root =>
-        req.as[Account] >>= { account =>
-          // TODO: Return ID here
-          info"PUT ${path.base}" >> accountService.createAccount(account) >>= { v => Created(v) }
-        }
+        for {
+          _ <- info"POST ${path.base}"
+          account <- req.as[Account]
+          response <- Created(accountService.createAccount(account))
+        } yield response
 
       case req @ PUT -> Root / LongVar(id) =>
-        req.as[Account] >>= { account =>
-          info"PUT ${path.base}/$id" >> accountService.updateAccount(id, account) >>= noContentOrNotFound
-        }
+        for {
+          _ <- info"PUT ${path.base}/$id"
+          account <- req.as[Account]
+          response <- accountService.updateAccount(id, account) >>= noContentOrNotFound
+        } yield response
 
       case req @ DELETE -> Root / LongVar(id) =>
-        info"DELETE ${path.base}/$id" >> accountService.deleteAccount(id) >>= noContentOrNotFound
+        for {
+          _ <- info"DELETE ${path.base}/$id"
+          response <- accountService.deleteAccount(id) >>= noContentOrNotFound
+        } yield response
 
   end routes
 
