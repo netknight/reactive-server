@@ -17,14 +17,13 @@ import org.typelevel.log4cats.syntax._
 
 import io.circe.generic.auto.*
 
-// TODO: Refactor list requests to Streams(fs2), like in example here: https://github.com/jaspervz/todo-http4s-doobie/blob/master/src/main/scala/HttpServer.scala
-
 class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _], L: LoggerFactory[F], val accountService: AccountService[F]) extends Route[F] /*with algebra.Endpoints*/:
   given Logger[F] = LoggerFactory.getLogger
 
-  val prefixPath: String = RoutePath.base
+  override val path: RoutePath.type = RoutePath
 
   /*
+  // TODO: Implement endpoints4s and generate Swagger documentation
   val findById: Endpoint[Int, Account] =
     endpoint(
       get(path), accountService.findById(1)
@@ -32,27 +31,27 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
    */
 
   // TODO: Log requests & responses (remove custom logging after)
-  val routes: HttpRoutes[F] = H.handle:
+  override val routes: HttpRoutes[F] = H.handle:
     HttpRoutes.of[F]:
       case GET -> Root =>
-        info"GET ${RoutePath.base}" >> Ok(accountService.findAll())
+        info"GET ${path.base}" >> Ok(accountService.findAll())
 
       case GET -> Root / LongVar(id) =>
-        info"GET ${RoutePath.base}/$id" >> accountService.findById(id) >>= okOrNotFound
+        info"GET ${path.base}/$id" >> accountService.findById(id) >>= okOrNotFound
 
       case req @ POST -> Root =>
         req.as[Account] >>= { account =>
           // TODO: Return ID here
-          info"PUT ${RoutePath.base}" >> accountService.createAccount(account) >>= { v => Created(v) }
+          info"PUT ${path.base}" >> accountService.createAccount(account) >>= { v => Created(v) }
         }
 
       case req @ PUT -> Root / LongVar(id) =>
         req.as[Account] >>= { account =>
-          info"PUT ${RoutePath.base}/$id" >> accountService.updateAccount(id, account) >>= noContentOrNotFound
+          info"PUT ${path.base}/$id" >> accountService.updateAccount(id, account) >>= noContentOrNotFound
         }
 
       case req @ DELETE -> Root / LongVar(id) =>
-        info"DELETE ${RoutePath.base}/$id" >> accountService.deleteAccount(id) >>= noContentOrNotFound
+        info"DELETE ${path.base}/$id" >> accountService.deleteAccount(id) >>= noContentOrNotFound
 
   end routes
 

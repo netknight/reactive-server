@@ -10,7 +10,7 @@ import org.http4s.circe.jsonEncoderOf
 import org.http4s.{EntityEncoder, HttpRoutes, Response}
 
 trait Route[F[_]: Monad] extends Http4sDsl[F]:
-  val prefixPath: String
+  val path: RoutePathObject
   val routes: HttpRoutes[F]
 
   given EntityEncoder[F, Long] = jsonEncoderOf[F, Long]
@@ -20,7 +20,7 @@ trait Route[F[_]: Monad] extends Http4sDsl[F]:
 
   protected def okOrNotFound[A](result: OpResult[A])(using encoder: EntityEncoder[F, A]): F[Response[F]] =
     result.map(Ok(_)) getOrElse NotFound()
-    
+
   protected def noContentOrNotFound(result: OpResult[_]): F[Response[F]] =
     result.map(_ => NoContent()) getOrElse NotFound()
 

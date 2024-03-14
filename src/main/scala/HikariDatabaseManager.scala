@@ -6,7 +6,7 @@ import org.flywaydb.core.Flyway
 
 import scala.concurrent.ExecutionContext
 
-class DatabaseManager[F[_]: Sync](tx: HikariTransactor[F])(using F: Sync[F]):
+class HikariDatabaseManager[F[_]: Sync](tx: HikariTransactor[F])(using F: Sync[F]):
   def migrate(): F[Unit] =
     tx.configure(ds =>
       F.delay(
@@ -19,10 +19,10 @@ class DatabaseManager[F[_]: Sync](tx: HikariTransactor[F])(using F: Sync[F]):
     )
 
   def transactor: HikariTransactor[F] = tx
-  
-end DatabaseManager
 
-object DatabaseManager:
+end HikariDatabaseManager
+
+object HikariDatabaseManager:
   def transactor[F[_]: Async](conf: DBConfiguration, ec: ExecutionContext): Resource[F, HikariTransactor[F]] =
     HikariTransactor.newHikariTransactor(
       conf.driver,

@@ -13,12 +13,12 @@ import cats.syntax.flatMap._
 class LifecycleRoute[F[_]](using F: Sync[F], L: LoggerFactory[F]) extends Route[F]:
   given Logger[F] = LoggerFactory.getLogger
 
-  val prefixPath: String = RoutePath.base
+  override val path: RoutePath.type = RoutePath
 
-  val routes: HttpRoutes[F] =
+  override val routes: HttpRoutes[F] =
     HttpRoutes.of[F]:
-      case GET -> Root / RoutePath.health =>
-        info"GET ${RoutePath.buildPath(RoutePath.health)}" >> Ok(LifecycleRoute.okStatus)
+      case GET -> Root / path.health =>
+        info"GET ${path.buildPath(path.health)}" >> Ok(LifecycleRoute.okStatus)
   end routes
 
 end LifecycleRoute
