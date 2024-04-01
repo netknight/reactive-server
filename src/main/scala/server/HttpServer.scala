@@ -17,6 +17,7 @@ import service.AccountService
 
 import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
+import org.flywaydb.core.Flyway
 
 class HttpServer[F[_]](using F: Async[F]):
   given LoggerFactory[F] = Slf4jFactory.create[F]
@@ -26,7 +27,13 @@ class HttpServer[F[_]](using F: Async[F]):
   private def createTransactor(config: DBConfiguration): Resource[F, HikariTransactor[F]] =
     for {
       ec <- ExecutionContexts.fixedThreadPool[F](config.threadPoolSize)
-      transactor <- HikariDatabaseManager.transactor[F](config, ec)
+      transactor <- HikariTransactor.newHikariTransactor(
+        config.driver,
+        config.url,
+        config.user,
+        config.password,
+        ec
+      )
     } yield transactor
 
   private def createRoutes(config: AppConfiguration)(using transactor: HikariTransactor[F]): F[Seq[Route[F]]] =
@@ -67,7 +74,15 @@ class HttpServer[F[_]](using F: Async[F]):
   private def create(config: AppConfiguration)(using transactor: HikariTransactor[F]): F[Unit] =
     for {
       _ <- debug"Launching migration scripts..."
-      _ <- HikariDatabaseManager(transactor).migrate()
+      _ <- transactor.configure(ds =>
+        F.delay(
+          Flyway
+            .configure()
+            .dataSource(ds)
+            .load()
+            .migrate()
+        )
+      )
       _ <- debug"Migration complete!"
       routes <- createRoutes(config)
       _ <- debug"Loaded routes: ${routes.map(_.path.base).mkString(", ")}"
