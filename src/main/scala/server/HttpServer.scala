@@ -4,15 +4,13 @@ package server
 import cats.effect.{Async, Resource}
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
-
-import org.http4s.HttpRoutes
+import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
-import org.http4s.server.middleware.{RequestId, ResponseTiming, Logger as LoggerMiddelware}
+import org.http4s.server.middleware.{AutoSlash, CORS, RequestId, ResponseTiming, Logger as LoggerMiddelware}
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.syntax.LoggerInterpolator
-
 import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, HttpRoutesErrorHandler, LifecycleRoute, Route}
 import repositories.AccountRepository
 import service.AccountService
@@ -42,22 +40,27 @@ class HttpServer[F[_]](using F: Async[F]):
   private def createRouter(routes: Seq[Route[F]]): HttpRoutes[F] =
     Router(routes.map(r => r.path.base -> r.routes): _*)
 
-  private def createRequestLogMiddleware(httpRoutes: HttpRoutes[F]) =
+  private val createHttpApp: HttpRoutes[F] => HttpApp[F] = { (httpRoutes: HttpRoutes[F]) =>
+    AutoSlash(httpRoutes)
+  } andThen {
+    CORS.policy.withAllowOriginAll(_)
+  } andThen {
+    RequestId.httpRoutes[F]
+  } andThen {
     LoggerMiddelware.httpRoutes[F](
       logHeaders = true,
       logBody = true,
       redactHeadersWhen = _ => false,
       logAction = Some((msg: String) => given_Logger_F.debug(s"[REQUEST LOG]: $msg"))
-    )(httpRoutes).orNotFound
-
-  private def createRequestIdMiddleware(httpRoutes: HttpRoutes[F]) =
-    RequestId.httpRoutes[F](httpRoutes)
+    )
+  } andThen { r =>
+    ResponseTiming(r.orNotFound)
+  }
 
   private def bindHttpServer(config: AppConfiguration)(routes: Seq[Route[F]]): F[Nothing] =
     BlazeServerBuilder[F]
       .bindHttp(config.http.port, config.http.host)
-      // TODO: Find a way how to chain middlewares correctly
-      .withHttpApp(ResponseTiming(createRequestLogMiddleware(createRequestIdMiddleware(createRouter(routes)))))
+      .withHttpApp(createHttpApp(createRouter(routes)))
       .resource
       .useForever
 
