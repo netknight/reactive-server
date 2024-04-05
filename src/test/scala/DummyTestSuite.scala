@@ -1,6 +1,8 @@
 package io.dm
 
 import cats.effect.IO
+import doobie.Read
+import io.dm.repositories.AccountEntity
 import weaver.Expectations.Helpers.expect
 import weaver.SimpleIOSuite
 
@@ -18,11 +20,17 @@ object DummyTestSuite extends SimpleIOSuite {
       expect.eql(s, 3)
     }
   }
-  
+
   test("dummy test") {
     IO.pure(1).map(_ + 2) map { result =>
       expect.eql(result, 3)
     }
   }
+  /*
+  test("entity Read") {
+    implicit r: Read[AccountEntity]
+    r.pure(???)
+  }
+  */
 
 }

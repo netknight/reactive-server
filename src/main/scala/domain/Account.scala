@@ -1,22 +1,22 @@
 package io.dm
 package domain
 
-import repositories.{AccountEntity, AccountFields}
+import domain.Account.toEntityFields
+import repositories.{AccountEntity, AccountMutation}
 
 import cats.data.{Validated, ValidatedNec}
 import cats.effect.{Concurrent, Sync}
-import cats.{Applicative, Eq, Show, Traverse}
 import cats.syntax.apply.*
 import cats.syntax.flatMap.*
 import cats.syntax.traverse.*
+import cats.{Applicative, Eq, Show, Traverse}
 import fs2.Stream
 import io.circe.Json
 import io.circe.generic.auto.{deriveDecoder, deriveEncoder}
-import io.dm.domain.Account.toEntityFields
-import io.github.iltotore.iron.{:|, autoRefine}
 import io.github.iltotore.iron.cats.refineValidatedNec
 import io.github.iltotore.iron.circe.given
 import io.github.iltotore.iron.constraint.all.*
+import io.github.iltotore.iron.{:|, autoRefine}
 import org.http4s.circe.{accumulatingJsonOf, jsonEncoderOf, streamJsonArrayEncoderOf}
 import org.http4s.{EntityDecoder, EntityEncoder}
 
@@ -30,10 +30,10 @@ type Email = (Match["^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"] & MaxLength[255]) D
   "Value should be an email"
 
 type Password = (Match["[A-Za-z].*[0-9]|[0-9].*[A-Za-z]"] & MinLength[6] & MaxLength[20]) DescribedAs
-  "Password must contain atleast a letter, a digit and have a length between 6 and 20"
+  "Password must contain at least a letter, a digit and have a length between 6 and 20"
 
 final case class Account(username: String :| Username, email: String :| Email, password: String :| Password) {
-  def toAccountFields: AccountFields = toEntityFields(this)
+  def toAccountFields: AccountMutation = toEntityFields(this)
 }
 
 
@@ -72,16 +72,15 @@ object Account {
   @Deprecated
   val testInstance: Account = Account("test", "test@test.com", "iddQd43")
 
-  val toEntityFields: Account => AccountFields =
-    a => AccountFields(
+  val toEntityFields: Account => AccountMutation =
+    a => AccountMutation(
       username = a.username,
       email = a.email,
       password = a.password
     )
 
   val fromEntity: AccountEntity => ValidatedNec[String, Account] =
-    //entity => of(entity.payload.username, entity.payload.email, entity.payload.password)
-    entity => of(entity.username, entity.email, entity.password)
+    entity => of(entity.payload.username, entity.payload.email, entity.payload.password)
 
   def fromEntityF[F[_]: Sync](entity: AccountEntity): F[Account] =
     fromEntity(entity).fold(

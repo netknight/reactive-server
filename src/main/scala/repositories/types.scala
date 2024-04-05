@@ -7,7 +7,7 @@ case class IdObject[T](id: T)
 
 type OpResult[T] = Either[NotFoundError.type, T]
 type OpResultAffectedRows = OpResult[Int]
-type OpResultEntity[E <: Entity[_]] = OpResult[E]
+type OpResultEntity[E <: Entity[_, _]] = OpResult[E]
 
 object OpResult {
   def successful[T](t: T): OpResult[T] = Right(t)

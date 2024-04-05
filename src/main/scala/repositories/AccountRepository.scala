@@ -8,14 +8,42 @@ import cats.syntax.applicative.*
 import doobie.implicits.toSqlInterpolator
 import doobie.*
 import doobie.implicits.*
+import doobie.implicits.javatimedrivernative.*
 import doobie.util.transactor.Transactor
 import org.typelevel.log4cats.syntax.LoggerInterpolator
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import fs2.Stream
 
+import java.time.Instant
+
 class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]) extends AccountRepository.I[F] {
 
   given Logger[F] = LoggerFactory.getLogger
+
+  //summon[Read[AccountEntity]]
+  //summon[Write[AccountEntity]]
+  given Read[AccountEntity] = Read[(AccountId, String, String, String, Instant, Instant)].map {
+    case (id, username, email, password, created, updated) => AccountEntity(id, created, updated, AccountMutation(username, email, password))
+  }
+
+  given Write[AccountEntity] = Write[(AccountId, String, String, String, Instant, Instant)].contramap {
+    case AccountEntity(id, created, updated, AccountMutation(username, email, password)) => (id, username, email, password, created, updated)
+  }
+  /*
+  given Read[AccountEntity] = Read[(AccountId, String, String, String, Instant, Instant)].map(v => {
+    debug"$v"
+    AccountEntity(v._1, v._5, v._6, AccountMutation(v._2, v._3, v._4))
+  })  
+  */
+  /*
+  {
+    case (id, username, email, password, created, updated) => AccountEntity(id, created, updated, AccountMutation(username, email, password))
+  }
+   */
+
+  implicit val entityWrite: Write[AccountEntity] = Write[(AccountId, String, String, String, String, String)].contramap {
+    case AccountEntity(id, created, updated, AccountMutation(username, email, password)) => (id, username, email, password, created.toString, updated.toString)
+  }
 
   override def list(): Stream[F, AccountEntity] =
     // TODO: add logging (how logger is composed with Stream?)
@@ -25,7 +53,6 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
       .stream
       .transact(tx)
 
-  // TODO: Change Option to Either
   def get(id: Long): F[OpResultEntity[AccountEntity]] =
     debug"Fetching entity with id: $id" >>
     sql"select * from accounts where id = $id"
@@ -45,14 +72,14 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
       }
     */
 
-  override def create(entity: AccountFields): F[IdObject[Long]] =
-    debug"Creating entity: $entity" >>
-    sql"insert into accounts (username, email, password) values (${entity.username}, ${entity.email}, ${entity.password})"
+  override def create(mutation: AccountMutation): F[IdObject[Long]] =
+    debug"Creating entity: $mutation" >>
+    sql"insert into accounts (username, email, password) values (${mutation.username}, ${mutation.email}, ${mutation.password})"
       .update
       .withUniqueGeneratedKeys[Long]("id")
       .transact(tx) >>= { v =>
         // TODO: Find better composition of logging and returning value
-        debug"Created entity: $entity with id: $v" >> IdObject(v).pure[F]
+        debug"Created entity: $mutation with id: $v" >> IdObject(v).pure[F]
       }
 
 
@@ -67,9 +94,9 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
         case n => Right(n)
       } // TODO: Add logging or a result
 
-  override def update(id: Long, entity: AccountFields): F[OpResultAffectedRows] =
-    debug"Updating entity id: $id with $entity" >>
-    sql"update accounts set username = ${entity.username}, email = ${entity.email}, password = ${entity.password} where id = $id"
+  override def update(id: Long, mutation: AccountMutation): F[OpResultAffectedRows] =
+    debug"Updating entity id: $id with $mutation" >>
+    sql"update accounts set username = ${mutation.username}, email = ${mutation.email}, password = ${mutation.password} where id = $id"
       .update
       .run
       .transact(tx)
@@ -81,5 +108,5 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 }
 
 object AccountRepository {
-  trait I[F[_]: Sync] extends Repository[F, Long, AccountFields, AccountEntity]
+  trait I[F[_]: Sync] extends Repository[F, AccountId, AccountMutation, AccountEntity]
 }
