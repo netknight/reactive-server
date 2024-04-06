@@ -1,10 +1,9 @@
 package io.dm
 package routes
 
-import domain.Account
-import repositories.IdObject
+import domain.AccountMutation
 import routes.AccountRoutes.RoutePath
-import routes.EntityEncoders.Implicits.idObjectAccountId
+import routes.EntityEncoders.Implicits.given
 import service.AccountService
 
 import cats.effect.Concurrent
@@ -51,7 +50,7 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
       case req @ POST -> Root =>
         for {
           _ <- info"POST ${path.base}"
-          account <- req.as[Account]
+          account <- req.as[AccountMutation]
           result <- accountService.createAccount(account)
           response <- Created(result)
         } yield response
@@ -59,7 +58,7 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
       case req @ PUT -> Root / AccountIdVar(id) =>
         for {
           _ <- info"PUT ${path.base}/$id"
-          account <- req.as[Account]
+          account <- req.as[AccountMutation]
           response <- accountService.updateAccount(id, account) >>= noContentOrNotFound
         } yield response
 

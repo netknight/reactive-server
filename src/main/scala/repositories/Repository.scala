@@ -3,7 +3,7 @@ package repositories
 
 import fs2.Stream
 
-trait Repository[F[_], ID, P, E <: Entity[ID, P]] {
+trait Repository[F[_], ID, P, E <: BasicEntity[ID, P]] {
 
   def get(id: ID): F[OpResultEntity[E]]
   def delete(id: ID): F[OpResultAffectedRows]

@@ -1,46 +1,55 @@
 package io.dm
 package domain
 
-import domain.Account.toEntityFields
-import repositories.{AccountEntity, AccountMutation}
+import repositories.BasicEntity
 
 import cats.data.{Validated, ValidatedNec}
-import cats.effect.{Concurrent, Sync}
 import cats.syntax.apply.*
-import cats.syntax.flatMap.*
-import cats.syntax.traverse.*
-import cats.{Applicative, Eq, Show, Traverse}
-import fs2.Stream
-import io.circe.generic.auto.{deriveDecoder, deriveEncoder}
+import cats.{Eq, Show}
+import io.github.iltotore.iron.:|
 import io.github.iltotore.iron.cats.refineValidatedNec
-import io.github.iltotore.iron.circe.given
 import io.github.iltotore.iron.constraint.all.*
-import io.github.iltotore.iron.{:|, autoRefine}
-import org.http4s.circe.{accumulatingJsonOf, jsonEncoderOf, streamJsonArrayEncoderOf}
-import org.http4s.{EntityDecoder, EntityEncoder}
 
+import java.time.Instant
 
-type Username = (Alphanumeric & MinLength[3] & MaxLength[10]) DescribedAs
-  "Username should be alphanumeric and have a length between 3 and 10"
+final case class AccountMutation(
+  username: String :| Username,
+  email: String :| Email,
+  password: String :| Password
+)
 
-//object Username extends RefinedTypeOps[Username]
+object AccountMutation {
+  given Eq[AccountMutation] = Eq.fromUniversalEquals
+  given Show[AccountMutation] = Show.fromToString
 
-type Email = (Match["^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"] & MaxLength[255]) DescribedAs
-  "Value should be an email"
+  def apply(username: String, email: String, password: String): ValidatedNec[String, AccountMutation] =
+    (
+      username.refineValidatedNec[Username],
+      email.refineValidatedNec[Email],
+      password.refineValidatedNec[Password]
+    ).mapN(AccountMutation.apply)
 
-type Password = (Match["[A-Za-z].*[0-9]|[0-9].*[A-Za-z]"] & MinLength[6] & MaxLength[20]) DescribedAs
-  "Password must contain at least a letter, a digit and have a length between 6 and 20"
-
-final case class Account(username: String :| Username, email: String :| Email, password: String :| Password) {
-  def toAccountFields: AccountMutation = toEntityFields(this)
+  def applyUnsafe(username: String, email: String, password: String): AccountMutation =
+    apply(username, email, password).fold(
+      e => throw new IllegalArgumentException(e.toString),
+      v => v
+    )
 }
 
+final case class Account(
+  override val id: AccountId,
+  override val created: Instant,
+  override val updated: Instant,
+  override val body: AccountMutation
+) extends BasicEntity[AccountId, AccountMutation]
+
+/*
+final case class Account(username: String :| Username, email: String :| Email, password: String :| Password) {
+  //def toAccountFields: AccountMutation = toEntityFields(this)
+}
+*/
 
 object Account {
-  given [F[_]]: EntityEncoder[F, Account] = jsonEncoderOf[F, Account]
-  given [F[_]: Concurrent]: EntityDecoder[F, Account] = accumulatingJsonOf[F, Account]
-  given [F[_]]: EntityEncoder[F, Stream[F, Account]] = streamJsonArrayEncoderOf[F, Account]
-
   given Eq[Account] = Eq.fromUniversalEquals
   given Show[Account] = Show.fromToString
 
@@ -60,15 +69,7 @@ object Account {
   }
   */
 
-  // TODO: Change to apply
-  def of(username: String, email: String, password: String): ValidatedNec[String, Account] =
-    (
-      username.refineValidatedNec[Username],
-      email.refineValidatedNec[Email],
-      password.refineValidatedNec[Password]
-    ).mapN(Account.apply)
-
-  
+  /*
   @Deprecated
   val testInstance: Account = Account("test", "test@test.com", "iddQd43")
 
@@ -95,5 +96,7 @@ object Account {
   extension [F[_]: Sync](v: Stream[F, AccountEntity])
     def mapToAccount(): Stream[F, Account] =
       v.evalMap(fromEntityF)
+
+   */
 }
 

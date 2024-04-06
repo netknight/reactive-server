@@ -1,7 +1,7 @@
 package io.dm
 package routes
 
-import repositories.AccountId
+import domain.AccountId
 
 private[this] class PathVar[A](parse: String => Option[A]):
   def unapply(str: String): Option[A] =

@@ -7,7 +7,7 @@ import cats.syntax.functor.*
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
-import org.http4s.server.middleware.{AutoSlash, CORS, RequestId, ResponseTiming, Logger as LoggerMiddelware}
+import org.http4s.server.middleware.{AutoSlash, CORS, GZip, RequestId, ResponseTiming, Logger as LoggerMiddelware}
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.syntax.LoggerInterpolator
@@ -50,6 +50,8 @@ class HttpServer[F[_]](using F: Async[F]):
   private val createHttpApp: HttpRoutes[F] => HttpApp[F] = { (httpRoutes: HttpRoutes[F]) =>
     AutoSlash(httpRoutes)
   } andThen {
+    GZip(_)
+  } andThen {
     CORS.policy.withAllowOriginAll(_)
   } andThen {
     RequestId.httpRoutes[F]
@@ -64,6 +66,7 @@ class HttpServer[F[_]](using F: Async[F]):
     ResponseTiming(r.orNotFound)
   }
 
+  // TODO: Use fs2.Stream instead of F[Nothing] (like descibed here: https://github.com/gvolpe/http4s-good-practices)
   private def bindHttpServer(config: AppConfiguration)(routes: Seq[Route[F]]): F[Nothing] =
     BlazeServerBuilder[F]
       .bindHttp(config.http.port, config.http.host)

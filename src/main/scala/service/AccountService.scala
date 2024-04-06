@@ -1,9 +1,8 @@
 package io.dm
 package service
 
-import domain.Account
-import domain.Account.mapToAccount
-import repositories.{AccountId, AccountRepository, IdObject, OpResult, OpResultAffectedRows}
+import domain.{Account, AccountId, AccountMutation}
+import repositories.{AccountRepository, IdObject, OpResult, OpResultAffectedRows}
 
 import cats.data.Kleisli
 import cats.effect.Sync
@@ -18,19 +17,19 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]/*, T: Transacto
 
 
   def findById(id: AccountId): F[OpResult[Account]] =
-    info"getAccountById($id)" >> R.get(id).mapToAccount()
+    info"getAccountById($id)" >> R.get(id)
 
 
   def findAll(): Stream[F, Account] =
-    Stream.eval(info"getAccounts()") >> R.list().mapToAccount()
+    Stream.eval(info"getAccounts()") >> R.list()
 
   val getAccount: Kleisli[F, AccountId, OpResult[Account]] = Kleisli(findById)
 
-  def createAccount(account: Account): F[IdObject[AccountId]] =
-    R.create(account.toAccountFields)
+  def createAccount(account: AccountMutation): F[IdObject[AccountId]] =
+    R.create(account)
 
-  def updateAccount(id: AccountId, account: Account): F[OpResultAffectedRows] =
-    R.update(id, account.toAccountFields)
+  def updateAccount(id: AccountId, account: AccountMutation): F[OpResultAffectedRows] =
+    R.update(id, account)
 
   def deleteAccount(id: AccountId): F[OpResultAffectedRows] = R.delete(id)
 

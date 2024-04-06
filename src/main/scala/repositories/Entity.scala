@@ -4,16 +4,24 @@ package repositories
 import java.time.Instant
 
 
-trait Entity[ID, A] {
+trait Entity[ID] {
   val id: ID
-  val created: Instant
-  val updated: Instant
-  val payload: A
 }
 
-trait EntityDt[ID, A] extends Entity[ID, A] {
+trait EntityWithCreatedUpdated[ID] extends Entity[ID] {
   val created: Instant
   val updated: Instant
 }
 
-case class EntityClass[ID, A](id: ID, created: Instant, updated: Instant, payload: A) extends Entity[ID, A]
+trait EntityWithBody[ID, A] extends Entity[ID] {
+  val body: A
+}
+
+trait BasicEntity[ID, A] extends EntityWithCreatedUpdated[ID], EntityWithBody[ID, A]
+
+case class EntityClass[ID, A](
+   id: ID,
+   created: Instant,
+   updated: Instant,
+   body: A
+) extends BasicEntity[ID, A]
