@@ -11,7 +11,6 @@ import cats.syntax.flatMap.*
 import cats.syntax.traverse.*
 import cats.{Applicative, Eq, Show, Traverse}
 import fs2.Stream
-import io.circe.Json
 import io.circe.generic.auto.{deriveDecoder, deriveEncoder}
 import io.github.iltotore.iron.cats.refineValidatedNec
 import io.github.iltotore.iron.circe.given
@@ -61,6 +60,7 @@ object Account {
   }
   */
 
+  // TODO: Change to apply
   def of(username: String, email: String, password: String): ValidatedNec[String, Account] =
     (
       username.refineValidatedNec[Username],

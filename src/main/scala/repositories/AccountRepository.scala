@@ -22,27 +22,15 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 
   //summon[Read[AccountEntity]]
   //summon[Write[AccountEntity]]
-  given Read[AccountEntity] = Read[(AccountId, String, String, String, Instant, Instant)].map {
-    case (id, username, email, password, created, updated) => AccountEntity(id, created, updated, AccountMutation(username, email, password))
+  // TODO: Check if this can help parsing newtypes: https://github.com/Iltotore/iron/blob/main/doobie/src/io/github/iltotore/iron/doobie.scala
+  given Read[AccountEntity] = Read[(Long, String, String, String, Instant, Instant)].map {
+    case (id, username, email, password, created, updated) =>
+      AccountEntity(AccountId.applyUnsafe(id), created, updated, AccountMutation(username, email, password))
   }
 
-  given Write[AccountEntity] = Write[(AccountId, String, String, String, Instant, Instant)].contramap {
-    case AccountEntity(id, created, updated, AccountMutation(username, email, password)) => (id, username, email, password, created, updated)
-  }
-  /*
-  given Read[AccountEntity] = Read[(AccountId, String, String, String, Instant, Instant)].map(v => {
-    debug"$v"
-    AccountEntity(v._1, v._5, v._6, AccountMutation(v._2, v._3, v._4))
-  })  
-  */
-  /*
-  {
-    case (id, username, email, password, created, updated) => AccountEntity(id, created, updated, AccountMutation(username, email, password))
-  }
-   */
-
-  implicit val entityWrite: Write[AccountEntity] = Write[(AccountId, String, String, String, String, String)].contramap {
-    case AccountEntity(id, created, updated, AccountMutation(username, email, password)) => (id, username, email, password, created.toString, updated.toString)
+  given Write[AccountEntity] = Write[(Long, String, String, String, Instant, Instant)].contramap {
+    case AccountEntity(id, created, updated, AccountMutation(username, email, password)) =>
+      (id, username, email, password, created, updated)
   }
 
   override def list(): Stream[F, AccountEntity] =
@@ -53,9 +41,9 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
       .stream
       .transact(tx)
 
-  def get(id: Long): F[OpResultEntity[AccountEntity]] =
+  def get(id: AccountId): F[OpResultEntity[AccountEntity]] =
     debug"Fetching entity with id: $id" >>
-    sql"select * from accounts where id = $id"
+    sql"select * from accounts where id = ${id.asInstanceOf[Long]}"
       .query[AccountEntity]
       //.unique
       .option
@@ -72,20 +60,20 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
       }
     */
 
-  override def create(mutation: AccountMutation): F[IdObject[Long]] =
+  override def create(mutation: AccountMutation): F[IdObject[AccountId]] =
     debug"Creating entity: $mutation" >>
     sql"insert into accounts (username, email, password) values (${mutation.username}, ${mutation.email}, ${mutation.password})"
       .update
       .withUniqueGeneratedKeys[Long]("id")
       .transact(tx) >>= { v =>
         // TODO: Find better composition of logging and returning value
-        debug"Created entity: $mutation with id: $v" >> IdObject(v).pure[F]
+        debug"Created entity: $mutation with id: $v" >> IdObject(AccountId.applyUnsafe(v)).pure[F]
       }
 
 
-  override def delete(id: Long): F[OpResultAffectedRows] =
+  override def delete(id: AccountId): F[OpResultAffectedRows] =
     debug"Deleting entity with id: $id" >>
-    sql"delete from accounts where id = $id"
+    sql"delete from accounts where id = ${id.asInstanceOf[Long]}"
       .update
       .run
       .transact(tx)
@@ -94,9 +82,9 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
         case n => Right(n)
       } // TODO: Add logging or a result
 
-  override def update(id: Long, mutation: AccountMutation): F[OpResultAffectedRows] =
+  override def update(id: AccountId, mutation: AccountMutation): F[OpResultAffectedRows] =
     debug"Updating entity id: $id with $mutation" >>
-    sql"update accounts set username = ${mutation.username}, email = ${mutation.email}, password = ${mutation.password} where id = $id"
+    sql"update accounts set username = ${mutation.username}, email = ${mutation.email}, password = ${mutation.password} where id = ${id.asInstanceOf[Long]}"
       .update
       .run
       .transact(tx)

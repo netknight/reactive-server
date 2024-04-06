@@ -2,7 +2,9 @@ package io.dm
 package routes
 
 import domain.Account
+import repositories.IdObject
 import routes.AccountRoutes.RoutePath
+import routes.EntityEncoders.Implicits.idObjectAccountId
 import service.AccountService
 
 import cats.effect.Concurrent
@@ -12,9 +14,8 @@ import cats.syntax.functor.*
 //import endpoints4s.{algebra, generic}
 
 import org.http4s.{HttpRoutes, Response}
-import org.typelevel.log4cats.{Logger, LoggerFactory}
-
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.{Logger, LoggerFactory}
 
 class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _], L: LoggerFactory[F], val accountService: AccountService[F]) extends Route[F] /*with algebra.Endpoints*/:
   given Logger[F] = LoggerFactory.getLogger
@@ -29,13 +30,18 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
     )
    */
 
+
+  //given EntityEncoder[F, IdObject[AccountId]] = jsonEncoderOf[F, IdObject[AccountId]]
+
+
+
   // TODO: Log requests & responses (remove custom logging after)
   override val routes: HttpRoutes[F] = H.handle:
     HttpRoutes.of[F]:
       case GET -> Root =>
         info"GET ${path.base}" >> Ok(accountService.findAll())
 
-      case GET -> Root / LongVar(id) =>
+      case GET -> Root / AccountIdVar(id) =>
         for {
           _ <- info"GET ${path.base}/$id"
           account <- accountService.findById(id)
@@ -50,14 +56,14 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
           response <- Created(result)
         } yield response
 
-      case req @ PUT -> Root / LongVar(id) =>
+      case req @ PUT -> Root / AccountIdVar(id) =>
         for {
           _ <- info"PUT ${path.base}/$id"
           account <- req.as[Account]
           response <- accountService.updateAccount(id, account) >>= noContentOrNotFound
         } yield response
 
-      case req @ DELETE -> Root / LongVar(id) =>
+      case req @ DELETE -> Root / AccountIdVar(id) =>
         for {
           _ <- info"DELETE ${path.base}/$id"
           response <- accountService.deleteAccount(id) >>= noContentOrNotFound

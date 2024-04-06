@@ -3,7 +3,7 @@ package service
 
 import domain.Account
 import domain.Account.mapToAccount
-import repositories.{AccountRepository, IdObject, OpResult, OpResultAffectedRows}
+import repositories.{AccountId, AccountRepository, IdObject, OpResult, OpResultAffectedRows}
 
 import cats.data.Kleisli
 import cats.effect.Sync
@@ -17,22 +17,22 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]/*, T: Transacto
   given Logger[F] = LoggerFactory.getLogger
 
 
-  def findById(id: Long): F[OpResult[Account]] =
+  def findById(id: AccountId): F[OpResult[Account]] =
     info"getAccountById($id)" >> R.get(id).mapToAccount()
 
 
   def findAll(): Stream[F, Account] =
     Stream.eval(info"getAccounts()") >> R.list().mapToAccount()
 
-  val getAccount: Kleisli[F, Long, OpResult[Account]] = Kleisli(findById)
+  val getAccount: Kleisli[F, AccountId, OpResult[Account]] = Kleisli(findById)
 
-  def createAccount(account: Account): F[IdObject[Long]] =
+  def createAccount(account: Account): F[IdObject[AccountId]] =
     R.create(account.toAccountFields)
 
-  def updateAccount(id: Long, account: Account): F[OpResultAffectedRows] =
+  def updateAccount(id: AccountId, account: Account): F[OpResultAffectedRows] =
     R.update(id, account.toAccountFields)
 
-  def deleteAccount(id: Long): F[OpResultAffectedRows] = R.delete(id)
+  def deleteAccount(id: AccountId): F[OpResultAffectedRows] = R.delete(id)
 
   def validatePassword(account: Account, password: String): F[Boolean] = ??? // TODO
 
