@@ -67,7 +67,7 @@ class FileMetadataRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transact
   override def create(entity: FileMetadata): F[FileMetadata] =
     debug"Creating file: $entity" >>
       // TODO: created/updated should be generated in domain
-    sql"INSERT INTO file_metadata (filename, mime_type, size, created_at, updated_at) VALUES (${entity.id.asInstanceOf[String]}, ${entity.body.filename.asInstanceOf[String]}, ${entity.body.mimeType.asInstanceOf[String]}, ${entity.body.size.asInstanceOf[Long]}, ${entity.created}, ${entity.updated})"
+    sql"INSERT INTO file_metadata (id, filename, mime_type, size, created_at, updated_at) VALUES (${entity.id.asInstanceOf[String]}, ${entity.body.filename.asInstanceOf[String]}, ${entity.body.mimeType.asInstanceOf[String]}, ${entity.body.size.asInstanceOf[Long]}, ${entity.created}, ${entity.updated})"
       .update
       //.withUniqueGeneratedKeys[String]("id") // TODO: Generate in domain
       .run

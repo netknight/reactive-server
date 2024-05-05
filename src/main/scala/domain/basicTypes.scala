@@ -7,10 +7,10 @@ import io.github.iltotore.iron.constraint.all.*
 // -- Account
 
 // TODO: For some reason DescribedAs do not compile in EntityDecoder file
-type AccountId = Long :| Positive
+type AccountId = String :| ValidUUID
   //DescribedAs "The Account ID must be a positive number"
-object AccountId extends RefinedTypeOps[Long, Positive, AccountId] {
-  def generate: AccountId = AccountId.applyUnsafe(scala.util.Random.nextLong())
+object AccountId extends RefinedTypeOps[String, ValidUUID, AccountId] {
+  def generate: AccountId = AccountId.applyUnsafe(java.util.UUID.randomUUID().toString)
 }
 
 type Username = (Alphanumeric & MinLength[3] & MaxLength[10]) DescribedAs

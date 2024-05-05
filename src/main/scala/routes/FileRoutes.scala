@@ -2,7 +2,7 @@ package io.dm
 package routes
 
 import domain.FileMetadataMutation
-import routes.EntityEncoders.Implicits.given
+import routes.EntityEncoders.Implicits.FileMetadata.given
 import routes.FileRoutes.RoutePath
 import service.FileService
 
@@ -36,7 +36,7 @@ class FileRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _], 
         _ <- info"POST ${path.base}"
         file <- req.as[FileMetadataMutation]
         result <- fileService.create(file)
-        response <- Created(fileService.create(file))
+        response <- Created(result)
       } yield response
 
     case req @ PUT -> Root / FileIdVar(id) =>

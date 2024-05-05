@@ -3,7 +3,7 @@ package routes
 
 import domain.AccountMutation
 import routes.AccountRoutes.RoutePath
-import routes.EntityEncoders.Implicits.given
+import routes.EntityEncoders.Implicits.Account.given
 import service.AccountService
 
 import cats.effect.Concurrent

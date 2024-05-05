@@ -13,14 +13,18 @@ Content-Type: application/json
   "password": "idKfA01"
 }
 
+> {%
+    client.global.set("account-id", response.body.id);
+%}
+
 ###
 
-GET {{apiUrl}}/accounts/2
+GET {{apiUrl}}/accounts/{{account-id}}
 Accept: application/json
 
 ###
 
-PUT {{apiUrl}}/accounts/2
+PUT {{apiUrl}}/accounts/{{account-id}}
 Accept: application/json
 Content-Type: application/json
 
@@ -32,7 +36,7 @@ Content-Type: application/json
 
 ###
 
-DELETE {{apiUrl}}/accounts/2
+DELETE {{apiUrl}}/accounts/{{account-id}}
 Accept: application/json
 
 ###

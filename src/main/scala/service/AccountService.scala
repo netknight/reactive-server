@@ -2,10 +2,11 @@ package io.dm
 package service
 
 import domain.{Account, AccountId, AccountMutation, IdObject}
-import repositories.{AccountRepository, OpResult, OpResultEmpty}
+import repositories.{AccountRepository, NotFoundError, OpResult, OpResultEmpty}
 
 import cats.data.Kleisli
 import cats.effect.Sync
+import cats.syntax.applicative.*
 import cats.syntax.functor.*
 import cats.syntax.flatMap.*
 import fs2.Stream
@@ -32,10 +33,11 @@ class AccountService[F[_]](using F: Sync[F], L: LoggerFactory[F]/*, T: Transacto
 
   def update(id: AccountId, account: AccountMutation): F[OpResultEmpty] =
     R.get(id).map(opResult =>
-      opResult
-        .map(entity => entity.copy(body = account, updated = Instant.now))
-        .map(entity => R.update(entity) map OpResult.mapToEmpty)
-    )
+      opResult.map(entity => entity.copy(body = account, updated = Instant.now))
+    ).flatMap {
+      case Right(entity) => R.update(entity) map OpResult.mapToEmpty
+      case _ => Left(NotFoundError).pure[F]
+    }
 
   def delete(id: AccountId): F[OpResultEmpty] = R.delete(id) map OpResult.mapToEmpty
 

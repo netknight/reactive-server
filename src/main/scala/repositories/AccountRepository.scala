@@ -25,7 +25,7 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
   //summon[Write[Account]]
 
   // TODO: Check if this can help parsing newtypes: https://github.com/Iltotore/iron/blob/main/doobie/src/io/github/iltotore/iron/doobie.scala
-  given Read[Account] = Read[(Long, String, String, String, Instant, Instant)].map {
+  given Read[Account] = Read[(String, String, String, String, Instant, Instant)].map {
     case (id, username, email, password, created, updated) =>
       Account(
         id = AccountId.applyUnsafe(id),
@@ -39,7 +39,7 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
       )
   }
 
-  given Write[Account] = Write[(Long, String, String, String, Instant, Instant)].contramap {
+  given Write[Account] = Write[(String, String, String, String, Instant, Instant)].contramap {
     case Account(id, created, updated, AccountMutation(username, email, password)) =>
       (id, username, email, password, created, updated)
   }
@@ -54,7 +54,7 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 
   override def get(id: AccountId): F[OpResultEntity[Account]] =
     debug"Fetching account with id: $id" >>
-    sql"SELECT id, username, email, password, created_at, updated_at FROM accounts WHERE id = ${id.asInstanceOf[Long]}"
+    sql"SELECT id, username, email, password, created_at, updated_at FROM accounts WHERE id = ${id.asInstanceOf[String]}"
       .query[Account]
       //.unique
       .option
@@ -74,7 +74,7 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
   override def create(entity: Account): F[Account] =
     debug"Creating account: $entity" >>
     // TODO: created/updated should be generated in domain
-    sql"INSERT INTO accounts (id, username, email, password, created_at, updated_at) VALUES (${entity.id.asInstanceOf[Long]}, ${entity.body.username.asInstanceOf[String]}, ${entity.body.email.asInstanceOf[String]}, ${entity.body.password.asInstanceOf[String]}, ${entity.created}, ${entity.updated})"
+    sql"INSERT INTO accounts (id, username, email, password, created_at, updated_at) VALUES (${entity.id.asInstanceOf[String]}, ${entity.body.username.asInstanceOf[String]}, ${entity.body.email.asInstanceOf[String]}, ${entity.body.password.asInstanceOf[String]}, ${entity.created}, ${entity.updated})"
       .update
       //.withUniqueGeneratedKeys[Long]("id")
       .run
@@ -88,7 +88,7 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 
   override def delete(id: AccountId): F[OpResultAffectedRows] =
     debug"Deleting account with id: $id" >>
-    sql"DELETE FROM accounts WHERE id = ${id.asInstanceOf[Long]}"
+    sql"DELETE FROM accounts WHERE id = ${id.asInstanceOf[String]}"
       .update
       .run
       .transact(tx)
@@ -99,7 +99,7 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 
   override def update(entity: Account): F[OpResultAffectedRows] =
     debug"Updating account: $entity" >>
-    sql"UPDATE accounts SET username = ${entity.body.username.asInstanceOf[String]}, email = ${entity.body.email.asInstanceOf[String]}, password = ${entity.body.password.asInstanceOf[String]}, updated_at = ${entity.updated} WHERE id = ${entity.id.asInstanceOf[Long]}"
+    sql"UPDATE accounts SET username = ${entity.body.username.asInstanceOf[String]}, email = ${entity.body.email.asInstanceOf[String]}, password = ${entity.body.password.asInstanceOf[String]}, updated_at = ${entity.updated} WHERE id = ${entity.id.asInstanceOf[String]}"
       .update
       .run
       .transact(tx)
