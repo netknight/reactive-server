@@ -13,7 +13,7 @@ import cats.syntax.functor.*
 //import endpoints4s.{algebra, generic}
 
 import org.http4s.{HttpRoutes, Response}
-import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.syntax.LoggerInterpolator
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 
 class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _], L: LoggerFactory[F], val accountService: AccountService[F]) extends Route[F] /*with algebra.Endpoints*/:
@@ -51,7 +51,7 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
         for {
           _ <- info"POST ${path.base}"
           account <- req.as[AccountMutation]
-          result <- accountService.createAccount(account)
+          result <- accountService.create(account)
           response <- Created(result)
         } yield response
 
@@ -59,13 +59,13 @@ class AccountRoutes[F[_]](using F: Concurrent[F], H: HttpRoutesErrorHandler[F, _
         for {
           _ <- info"PUT ${path.base}/$id"
           account <- req.as[AccountMutation]
-          response <- accountService.updateAccount(id, account) >>= noContentOrNotFound
+          response <- accountService.update(id, account) >>= noContentOrNotFound
         } yield response
 
       case req @ DELETE -> Root / AccountIdVar(id) =>
         for {
           _ <- info"DELETE ${path.base}/$id"
-          response <- accountService.deleteAccount(id) >>= noContentOrNotFound
+          response <- accountService.delete(id) >>= noContentOrNotFound
         } yield response
 
   end routes

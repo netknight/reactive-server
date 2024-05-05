@@ -14,10 +14,12 @@ trait Route[F[_]: Monad] extends Http4sDsl[F]:
   // TODO: Make functions below extension methods
 
   protected def okOrNotFound[A](result: OpResult[A])(using encoder: EntityEncoder[F, A]): F[Response[F]] =
-    result.map(Ok(_)) getOrElse NotFound()
+    result fold (_ => NotFound(), Ok(_))
+    //result.map(Ok(_)) getOrElse NotFound()
 
   protected def noContentOrNotFound(result: OpResult[_]): F[Response[F]] =
-    result.map(_ => NoContent()) getOrElse NotFound()
+    result fold (_ => NotFound(), _ => NoContent())
+    //result.map(_ => NoContent()) getOrElse NotFound()
 
 end Route
 

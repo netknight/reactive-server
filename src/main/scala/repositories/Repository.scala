@@ -3,12 +3,12 @@ package repositories
 
 import fs2.Stream
 
-trait Repository[F[_], ID, P, E <: BasicEntity[ID, P]] {
+trait Repository[F[_], ID, E <: Entity[ID]] {
 
   def get(id: ID): F[OpResultEntity[E]]
   def delete(id: ID): F[OpResultAffectedRows]
-  def create(payload: P): F[IdObject[ID]]
-  def update(id: ID, payload: P): F[OpResultAffectedRows]
+  def create(entity: E): F[E]
+  def update(entity: E): F[OpResultAffectedRows]
   // TODO: Add filtration and pagination
   def list(): Stream[F, E]
 }

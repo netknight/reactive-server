@@ -1,0 +1,38 @@
+GET {{apiUrl}}/files
+
+###
+
+POST {{apiUrl}}/files
+Accept: application/json
+Content-Type: application/json
+
+{
+  "filename": "file.txt",
+  "mimeType": "text/plain",
+  "size": 100
+}
+
+> {%
+    client.global.set("file-id", response.body.id);
+%}
+
+###
+
+GET {{apiUrl}}/files/{{file-id}}
+
+###
+
+PUT {{apiUrl}}/files/{{file-id}}
+
+{
+  "filename": "file.png",
+  "mimeType": "image/png",
+  "size": 200
+}
+
+###
+
+DELETE {{apiUrl}}/files/{{file-id}}
+Accept: application/json
+
+###

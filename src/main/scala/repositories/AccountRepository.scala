@@ -7,7 +7,7 @@ import cats.effect.Sync
 import cats.syntax.applicative.*
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
-import doobie.*
+import doobie.{Read, Write}
 import doobie.implicits.javatimedrivernative.*
 import doobie.implicits.*
 import doobie.util.transactor.Transactor
@@ -23,10 +23,20 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 
   //summon[Read[Account]]
   //summon[Write[Account]]
+
   // TODO: Check if this can help parsing newtypes: https://github.com/Iltotore/iron/blob/main/doobie/src/io/github/iltotore/iron/doobie.scala
   given Read[Account] = Read[(Long, String, String, String, Instant, Instant)].map {
     case (id, username, email, password, created, updated) =>
-      Account(AccountId.applyUnsafe(id), created, updated, AccountMutation.applyUnsafe(username, email, password))
+      Account(
+        id = AccountId.applyUnsafe(id),
+        created = created,
+        updated = updated,
+        body = AccountMutation.applyUnsafe(
+          username = username,
+          email = email,
+          password = password
+        )
+      )
   }
 
   given Write[Account] = Write[(Long, String, String, String, Instant, Instant)].contramap {
@@ -36,15 +46,15 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 
   override def list(): Stream[F, Account] =
     // TODO: add logging (how logger is composed with Stream?)
-    // debug"Fetching all entities" >>
-    sql"select * from accounts"
+    // debug"Fetching all accounts" >>
+    sql"SELECT id, username, email, password, created_at, updated_at FROM accounts"
       .query[Account]
       .stream
       .transact(tx)
 
-  def get(id: AccountId): F[OpResultEntity[Account]] =
-    debug"Fetching entity with id: $id" >>
-    sql"select * from accounts where id = ${id.asInstanceOf[Long]}"
+  override def get(id: AccountId): F[OpResultEntity[Account]] =
+    debug"Fetching account with id: $id" >>
+    sql"SELECT id, username, email, password, created_at, updated_at FROM accounts WHERE id = ${id.asInstanceOf[Long]}"
       .query[Account]
       //.unique
       .option
@@ -61,31 +71,35 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
       }
     */
 
-  override def create(mutation: AccountMutation): F[IdObject[AccountId]] =
-    debug"Creating entity: $mutation" >>
-    sql"insert into accounts (username, email, password) values (${mutation.username.asInstanceOf[String]}, ${mutation.email.asInstanceOf[String]}, ${mutation.password.asInstanceOf[String]})"
+  override def create(entity: Account): F[Account] =
+    debug"Creating account: $entity" >>
+    // TODO: created/updated should be generated in domain
+    sql"INSERT INTO accounts (id, username, email, password, created_at, updated_at) VALUES (${entity.id.asInstanceOf[Long]}, ${entity.body.username.asInstanceOf[String]}, ${entity.body.email.asInstanceOf[String]}, ${entity.body.password.asInstanceOf[String]}, ${entity.created}, ${entity.updated})"
       .update
-      .withUniqueGeneratedKeys[Long]("id")
-      .transact(tx) >>= { v =>
+      //.withUniqueGeneratedKeys[Long]("id")
+      .run
+      .transact(tx)
+      .map { _ =>
+        entity
         // TODO: Find better composition of logging and returning value
-        debug"Created entity: $mutation with id: $v" >> IdObject(AccountId.applyUnsafe(v)).pure[F]
+        //debug"Created account: $entity with id: $v" >> IdObject(AccountId.applyUnsafe(v)).pure[F]
       }
 
 
   override def delete(id: AccountId): F[OpResultAffectedRows] =
-    debug"Deleting entity with id: $id" >>
-    sql"delete from accounts where id = ${id.asInstanceOf[Long]}"
+    debug"Deleting account with id: $id" >>
+    sql"DELETE FROM accounts WHERE id = ${id.asInstanceOf[Long]}"
       .update
       .run
       .transact(tx)
       .map {
         case 0 => Left(NotFoundError)
         case n => Right(n)
-      } // TODO: Add logging or a result
+      } // TODO: Add logging of a result
 
-  override def update(id: AccountId, mutation: AccountMutation): F[OpResultAffectedRows] =
-    debug"Updating entity id: $id with $mutation" >>
-    sql"update accounts set username = ${mutation.username.asInstanceOf[String]}, email = ${mutation.email.asInstanceOf[String]}, password = ${mutation.password.asInstanceOf[String]} where id = ${id.asInstanceOf[Long]}"
+  override def update(entity: Account): F[OpResultAffectedRows] =
+    debug"Updating account: $entity" >>
+    sql"UPDATE accounts SET username = ${entity.body.username.asInstanceOf[String]}, email = ${entity.body.email.asInstanceOf[String]}, password = ${entity.body.password.asInstanceOf[String]}, updated_at = ${entity.updated} WHERE id = ${entity.id.asInstanceOf[Long]}"
       .update
       .run
       .transact(tx)
@@ -97,5 +111,5 @@ class AccountRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]
 }
 
 object AccountRepository {
-  trait I[F[_]: Sync] extends Repository[F, AccountId, AccountMutation, Account]
+  trait I[F[_]: Sync] extends Repository[F, AccountId, Account]
 }

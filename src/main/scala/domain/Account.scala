@@ -30,10 +30,11 @@ object AccountMutation {
     ).mapN(AccountMutation.apply)
 
   def applyUnsafe(username: String, email: String, password: String): AccountMutation =
-    apply(username, email, password).fold(
-      e => throw new IllegalArgumentException(e.toString),
-      v => v
-    )
+    apply(
+      username = username,
+      email = email,
+      password = password
+    ).fold(e => throw new IllegalArgumentException(e.toString), identity)
 }
 
 final case class Account(

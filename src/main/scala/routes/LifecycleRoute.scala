@@ -5,7 +5,7 @@ import routes.LifecycleRoute.RoutePath
 
 import cats.effect.Sync
 import org.http4s.HttpRoutes
-import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.syntax.LoggerInterpolator
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import cats.syntax.flatMap.*
 

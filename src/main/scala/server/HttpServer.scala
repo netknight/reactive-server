@@ -11,9 +11,9 @@ import org.http4s.server.middleware.{AutoSlash, CORS, GZip, RequestId, ResponseT
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.syntax.LoggerInterpolator
-import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, HttpRoutesErrorHandler, LifecycleRoute, Route}
-import repositories.AccountRepository
-import service.AccountService
+import routes.{AccountRoutes, DefaultHttpRoutesErrorHandler, FileRoutes, HttpRoutesErrorHandler, LifecycleRoute, Route}
+import repositories.{AccountRepository, FileMetadataRepository}
+import service.{AccountService, FileService}
 
 import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
@@ -38,10 +38,15 @@ class HttpServer[F[_]](using F: Async[F]):
 
   private def createRoutes(config: AppConfiguration)(using transactor: HikariTransactor[F]): F[Seq[Route[F]]] =
     given AccountRepository[F] = AccountRepository()
+    given FileMetadataRepository[F] = FileMetadataRepository()
+    
     given AccountService[F] = AccountService()
+    given FileService[F] = FileService()
+    
     F.delay(Seq(
       LifecycleRoute(),
-      AccountRoutes()
+      AccountRoutes(),
+      FileRoutes()
     ))
 
   private def createRouter(routes: Seq[Route[F]]): HttpRoutes[F] =
