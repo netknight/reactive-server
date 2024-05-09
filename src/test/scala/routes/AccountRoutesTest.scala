@@ -9,6 +9,7 @@ import service.AccountService
 import cats.Eval
 import cats.effect.{IO, Sync}
 import cats.syntax.applicative.*
+import io.dm.server.HttpServer
 import io.github.iltotore.iron.autoRefine
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{Logger, LoggerFactory}
@@ -18,6 +19,7 @@ import weaver.SimpleIOSuite
 // TODO: Complete it
 
 import java.time.Instant
+
 /*
 class TestAccountRepository[F[_]: Sync](data: Seq[Account]) extends AccountRepository.I[F] {
   override def get(id: AccountId): F[OpResultEntity[Account]] =
@@ -63,4 +65,15 @@ object AccountRoutesTest extends SimpleIOSuite {
   }
 
 }
+*/
+/*
+object AccountRoutesTest extends SimpleIOSuite {
+  test("AccountRouteTest") {
+    for {
+      server <- App[IO].create()
+      //clisnt <-
+    } yield expect(server).isNotNull
+  }
+}
+
 */
