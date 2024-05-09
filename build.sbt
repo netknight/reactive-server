@@ -23,6 +23,7 @@ libraryDependencies +=  "org.typelevel" %% "log4cats-slf4j"   % "2.6.0"
 libraryDependencies += "org.http4s" %% "http4s-core" % "1.0.0-M29" withSources() withJavadoc()
 libraryDependencies += "org.http4s" %% "http4s-dsl" % "1.0.0-M29"
 libraryDependencies += "org.http4s" %% "http4s-blaze-server" % "1.0.0-M29"
+libraryDependencies += "org.http4s" %% "http4s-blaze-client" % "1.0.0-M29"
 libraryDependencies += "org.http4s" %% "http4s-circe" % "1.0.0-M29"
 
 libraryDependencies += "org.endpoints4s" %% "algebra" % "1.11.1"

@@ -17,6 +17,8 @@ import org.typelevel.log4cats.{Logger, LoggerFactory}
 
 import java.time.Instant
 
+// TODO: Read this, maybe Quill is a good option to avoid hand-crafted SQL (there is also good structure for Stream-based app): https://github.com/getquill/SBTB2019-Quill-Doobie/blob/master/src/main/scala/service/PeopleTrollsRobotsServiceQuill.scala
+
 class FileMetadataRepository[F[_]: Sync](using L: LoggerFactory[F], tx: Transactor[F]) extends FileMetadataRepository.I[F] {
   given Logger[F] = LoggerFactory.getLogger
 

@@ -2,19 +2,25 @@ package io.dm
 package routes
 
 import domain.{Account, AccountId, AccountMutation, IdObject}
-import repositories.OpResult.{toOpResult, toOpResultAffectedRows}
 import repositories.*
+import repositories.OpResult.{toOpResult, toOpResultAffectedRows}
+import server.HttpServer
 import service.AccountService
 
 import cats.Eval
 import cats.effect.{IO, Sync}
 import cats.syntax.applicative.*
-import io.dm.server.HttpServer
+import io.circe.Json
 import io.github.iltotore.iron.autoRefine
+import org.http4s.*
+import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.implicits.uri
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import org.typelevel.log4cats.{Logger, LoggerFactory}
 import weaver.Expectations.Helpers.expect
 import weaver.SimpleIOSuite
+
+import scala.concurrent.ExecutionContext
 
 // TODO: Complete it
 
@@ -66,14 +72,22 @@ object AccountRoutesTest extends SimpleIOSuite {
 
 }
 */
-/*
-object AccountRoutesTest extends SimpleIOSuite {
-  test("AccountRouteTest") {
-    for {
-      server <- App[IO].create()
-      //clisnt <-
-    } yield expect(server).isNotNull
-  }
-}
 
+/*
+object AccountRoutesTest extends SimpleIOSuite:
+  import cats.effect.unsafe.implicits.global
+
+  test("AccountRouteTest") {
+    val test = for {
+      server <- App[IO].create()
+      client <- fs2.Stream.resource(BlazeClientBuilder[IO].resource)
+      result <- fs2.Stream.eval(
+        for {
+          response <- client.statusFromUri(uri"http://localhost:8080/accounts")
+          _ <- IO(println(response))
+        } yield response
+      )
+    } yield expect.eql(result, Status.Ok)
+    test.compile.lastOrError
+  }
 */
