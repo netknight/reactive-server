@@ -1,43 +1,59 @@
 package io.dm
 package server
 
-import cats.effect.{Async, ExitCode, Resource}
+import routes.Route
+
+import cats.effect.{Async, ExitCode, Ref, Resource}
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
-import org.http4s.HttpRoutes
-import org.http4s.server.Router
-import org.typelevel.log4cats.{Logger, LoggerFactory}
+import fs2.concurrent.Signal
+import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.server.Server
+import org.http4s.server.middleware.{AutoSlash, CORS, GZip, RequestId, ResponseTiming, Logger as LoggerMiddelware}
+import org.http4s.{HttpApp, HttpRoutes}
 import org.typelevel.log4cats.syntax.LoggerInterpolator
-import routes.{AccountRoutes, FileRoutes, HttpRoutesErrorHandler, LifecycleRoute, Route}
-import repositories.{AccountRepository, FileMetadataRepository}
-import service.{AccountService, FileService}
+import org.typelevel.log4cats.{Logger, LoggerFactory}
 
-import doobie.util.transactor.Transactor
-
-class HttpServer[F[_]](config: AppConfiguration)(using F: Async[F], L: LoggerFactory[F], T: Transactor[F], H: HttpRoutesErrorHandler[F, _]):
+class HttpServer[F[_]](config: HttpConfiguration, httpRoutes: HttpRoutes[F])(using F: Async[F], L: LoggerFactory[F]):
   given Logger[F] = LoggerFactory.getLogger
 
-  given AccountRepository[F] = AccountRepository()
-  given FileMetadataRepository[F] = FileMetadataRepository()
-
-  given AccountService[F] = AccountService()
-  given FileService[F] = FileService()
-
-  private def createRouter(routes: Seq[Route[F]]): HttpRoutes[F] =
-    Router(routes.map(r => r.path.base -> r.routes): _*)
-
-  def createWithRoutes(routes: Seq[Route[F]]): fs2.Stream[F, ExitCode] =
-    for {
-      _ <- fs2.Stream.eval(debug"Loaded routes: ${routes.map(_.path.base).mkString(", ")}")
-      exitCode <- HttpServerStream[F](config.http, createRouter(routes)).run()
-    } yield exitCode
-
-
-  def create(): fs2.Stream[F, ExitCode] =
-    createWithRoutes(
-      Seq(
-        LifecycleRoute(),
-        AccountRoutes(),
-        FileRoutes()
-      )
+  private val createHttpApp: HttpRoutes[F] => HttpApp[F] = { (httpRoutes: HttpRoutes[F]) =>
+    AutoSlash(httpRoutes)
+  } andThen {
+    GZip(_)
+  } andThen {
+    CORS.policy.withAllowOriginAll(_)
+  } andThen {
+    RequestId.httpRoutes[F]
+  } andThen {
+    LoggerMiddelware.httpRoutes[F](
+      logHeaders = true,
+      logBody = true,
+      redactHeadersWhen = _ => false,
+      logAction = Some((msg: String) => given_Logger_F.debug(s"[REQUEST LOG]: $msg"))
     )
+  } andThen { r =>
+    ResponseTiming(r.orNotFound)
+  }
+
+  private def serverBuilder(): BlazeServerBuilder[F] =
+    BlazeServerBuilder[F]
+      .bindHttp(config.port, config.host)
+      .withHttpApp(createHttpApp(httpRoutes))
+  
+  private def logStartup: F[Unit] = 
+    info"Starting server at http://${config.host}:${config.port}"
+  
+  def createServerResource(): Resource[F, Server] =
+    for {
+      _ <- Resource.eval(logStartup)
+      server <- serverBuilder().resource
+    } yield server
+
+  def createServerStream(terminationSignal: Signal[F, Boolean]): fs2.Stream[F, ExitCode] =
+    for {
+      _ <- fs2.Stream.eval(logStartup)
+      exitCode <- fs2.Stream.eval(Ref.of(ExitCode.Success))
+      server <- serverBuilder().serveWhile(terminationSignal, exitCode)
+    } yield server
+
